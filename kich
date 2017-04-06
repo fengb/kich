@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-: ${KICH_SRC="$(git -C "`dirname "${BASH_SOURCE[0]}"`" rev-parse --show-toplevel)"}
+: ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
 : ${KICH_TGT="$HOME"}
 : ${KICH_IGNORE="`cat "$KICH_SRC/.kichignore" 2>/dev/null; echo .kichignore`"}
 
