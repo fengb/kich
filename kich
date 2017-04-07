@@ -17,8 +17,8 @@ to_tgt() {
 }
 
 or_names() {
-  : ${NL=$'\\\n'}
-  sed -e '/^ *$/d' -e '1!'"s/^/-or$NL-name$NL/" -e "1s/^/-name$NL/"
+  __=$'\\\n'
+  sed -e '/^ *$/d' -e '1!'"s/^/-or$__-name$__/" -e "1s/^/-name$__/"
 }
 
 src_find() {
@@ -60,19 +60,12 @@ src_from() {
   fi
 }
 
-concat() {
-  for arg in "$@"; do
-    [ -n "$arg" ] && echo "$arg"
-  done
-  true
-}
-
 rm_files() {
-  files="`concat "$@" | sort -u`"
+  files="`grep -v '^$' | sort -u`"
   [ -z "$files" ] && return
 
   echo "$files"
-  read -p "About to delete [enter to continue]: "
+  read -p "About to delete [enter to continue]: " </dev/tty
   echo
 
   rm -rf $files
@@ -84,7 +77,6 @@ error() {
 }
 
 install() {
-  # Can't assign ${:=} in herestring <<<
   : ${tgt_dirs=`tgt_dirs`}
   : ${tgt_links=`tgt_links`}
 
@@ -92,7 +84,8 @@ install() {
   existlinks="`find_filter $tgt_links -not -type l`"
   brokelinks="`find_filter -L $tgt_links -type l`"
 
-  rm_files "$existdirs" "$existlinks" "$brokelinks"
+  NL=$'\n'
+  rm_files <<< "$existdirs$NL$existlinks$NL$brokelinks"
 
   for dst in $tgt_dirs; do
     # Existence check speeds things up...
@@ -129,7 +122,8 @@ unsync() {
 }
 
 uninstall() {
-  rm_files "${tgt_links=`tgt_links`}"
+  : ${tgt_links=`tgt_links`}
+  rm_files <<< "$tgt_links"
 }
 
 env() {
@@ -139,13 +133,14 @@ env() {
 }
 
 ls() {
-  echo "${tgt_links=`tgt_links`}"
+  : ${tgt_links=`tgt_links`}
+  find_filter -L $tgt_links -not -type l
 }
 
 clean() {
   kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
   brokelinks="`find_filter -L $kichlinks -type l`"
-  rm_files "$brokelinks"
+  rm_files <<< "$brokelinks"
 }
 
 case "${1-}" in
