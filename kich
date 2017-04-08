@@ -46,8 +46,8 @@ function find_filter {
 }
 
 function src_from {
-  [[ "$1" != "$KICH_TGT"* ]] && error "'$1' not in \$KICH_TGT ($KICH_TGT)"
-  [[ "$1" == "$KICH_SRC"* ]] && error "'$1' already synced"
+  [[ "$1" != "$KICH_TGT"* ]] && panic "'$1' not in \$KICH_TGT ($KICH_TGT)"
+  [[ "$1" == "$KICH_SRC"* ]] && panic "'$1' already synced"
 
   src="${KICH_SRC}${1#"$KICH_TGT"}"
   if [ -f "$1" ]; then
@@ -77,7 +77,7 @@ function rm_files {
   esac
 }
 
-function error {
+function panic {
   echo "kich: $1" >&2
   exit 1
 }
@@ -107,8 +107,8 @@ function install {
 }
 
 function sync {
-  [ ! -e "$1" ] && error "'$1' is not found"
-  [ -L "$1" ] && error "'$1' is a symlink"
+  [ ! -e "$1" ] && panic "'$1' is not found"
+  [ -L "$1" ] && panic "'$1' is a symlink"
 
   src="$(src_from "`abspath "$1"`")"
   mkdir -p "${src%/*}"
@@ -117,11 +117,11 @@ function sync {
 }
 
 function unsync {
-  [ ! -L "$1" ] && error "'$1' is not a symlink"
+  [ ! -L "$1" ] && panic "'$1' is not a symlink"
 
   src="$(readlink "`abspath "$1"`")"
-  [[ "$src" != "$KICH_SRC"* ]] && error "'$1' is not synced"
-  [ ! -e "$src" ] && error "'$src' is not found"
+  [[ "$src" != "$KICH_SRC"* ]] && panic "'$1' is not synced"
+  [ ! -e "$src" ] && panic "'$src' is not found"
 
   rm "$1"
   mv "$src" "$1"
@@ -162,7 +162,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
       install
       ;;
     *)
-      error "'$1' is not a command"
+      panic "'$1' is not a command"
       ;;
   esac
 fi
