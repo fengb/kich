@@ -4,47 +4,49 @@
 #exec 3>&2 2>trace.log
 #set -x
 
-set -euo pipefail
+function init {
+  set -euo pipefail
 
-: ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
-: ${KICH_TGT="$HOME"}
-: ${KICH_IGNORE="`cat "$KICH_SRC/.kichignore" 2>/dev/null; echo .kichignore`"}
+  : ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
+  : ${KICH_TGT="$HOME"}
+  : ${KICH_IGNORE="`cat "$KICH_SRC/.kichignore" 2>/dev/null; echo .kichignore`"}
 
-IFS=$'\n'
+  IFS=$'\n'
+}
 
-to_tgt() {
+function to_tgt {
   sed -e "s;^$KICH_SRC;$KICH_TGT;" -e "s/.link$//"
 }
 
-or_names() {
+function or_names {
   __=$'\\\n'
   sed -e '/^ *$/d' -e '1!'"s/^/-or$__-name$__/" -e "1s/^/-name$__/"
 }
 
-src_find() {
+function src_find {
   src_find_exclude="`or_names <<< "$KICH_IGNORE"`"
 
   find "$KICH_SRC" \( $src_find_exclude \) -prune -or \( "$@" \) -print
 }
 
-tgt_dirs() {
+function tgt_dirs {
   src_find -not \( -name '*.link' -prune \) -type d | to_tgt
 }
 
-tgt_links() {
+function tgt_links {
   src_find -name '*.link' -prune -or -type f | to_tgt
 }
 
-abspath() {
+function abspath {
   [ ! -e "$1" ] && error "'$1' does not exist"
   echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-find_filter() {
+function find_filter {
   find "$@" -maxdepth 0 2>/dev/null || true
 }
 
-src_from() {
+function src_from {
   [[ "$1" != "$KICH_TGT"* ]] && error "'$1' not in \$KICH_TGT ($KICH_TGT)"
   [[ "$1" == "$KICH_SRC"* ]] && error "'$1' already synced"
 
@@ -60,7 +62,7 @@ src_from() {
   fi
 }
 
-rm_files() {
+function rm_files {
   files="`<&3 grep -v '^$' | sort -u`"
   [ -z "$files" ] && return
 
@@ -71,12 +73,12 @@ rm_files() {
   rm -rf $files
 }
 
-error() {
+function error {
   echo "kich: $1" >&2
   exit 1
 }
 
-install() {
+function install {
   : ${tgt_dirs=`tgt_dirs`}
   : ${tgt_links=`tgt_links`}
 
@@ -100,7 +102,7 @@ install() {
   done
 }
 
-sync() {
+function sync {
   [ ! -e "$1" ] && error "'$1' is not found"
   [ -L "$1" ] && error "'$1' is a symlink"
 
@@ -110,7 +112,7 @@ sync() {
   ln -s "$src" "$1"
 }
 
-unsync() {
+function unsync {
   [ ! -L "$1" ] && error "'$1' is not a symlink"
 
   src="$(readlink "`abspath "$1"`")"
@@ -121,38 +123,42 @@ unsync() {
   mv "$src" "$1"
 }
 
-uninstall() {
+function uninstall {
   : ${tgt_links=`tgt_links`}
   rm_files 3<<< "$tgt_links"
 }
 
-env() {
+function env {
   echo "KICH_SRC='$KICH_SRC'"
   echo "KICH_TGT='$KICH_TGT'"
   echo "KICH_IGNORE='$KICH_IGNORE'"
 }
 
-ls() {
+function ls {
   : ${tgt_links=`tgt_links`}
   find_filter -L $tgt_links -not -type l
 }
 
-clean() {
+function clean {
   kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
   brokelinks="`find_filter -L $kichlinks -type l`"
   rm_files 3<<< "$brokelinks"
 }
 
-case "${1-}" in
-  install|sync|unsync|uninstall|env|ls|clean)
-    command="$1"
-    shift
-    "$command" "$@"
-    ;;
-  "")
-    install
-    ;;
-  *)
-    error "'$1' is not a command"
-    ;;
-esac
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  init
+
+  case "${1-}" in
+    install|sync|unsync|uninstall|env|ls|clean)
+      command="$1"
+      shift
+      "$command" "$@"
+      ;;
+    "")
+      install
+      ;;
+    *)
+      error "'$1' is not a command"
+      ;;
+  esac
+fi
