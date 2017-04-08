@@ -195,11 +195,11 @@ pretty_format() {
 }
 
 pretty_success() {
-  pretty_format "$GREEN" "\u2713" "$1"
+  pretty_format "$GREEN" "✓" "$1"
 }
 
 pretty_failure() {
-  pretty_format "$RED" "\u2717" "$1"
+  pretty_format "$RED" "✗" "$1"
 }
 
 text_format() {
@@ -250,7 +250,7 @@ tap_format() {
     local message="$2"
     echo -n "not ok" | pretty_failure -
     echo "$test" | color "$BLUE"
-    [[ -z $message  ]] || printf -- "$message\n" | sed -u -e 's/^/# /'
+    [[ -z $message  ]] || printf -- "$message\n" | sed -e 's/^/# /'
   }
   notify_stdout() {
     sed 's:^:# out> :' | color "$GREEN"
