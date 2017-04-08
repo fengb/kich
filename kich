@@ -61,11 +61,11 @@ src_from() {
 }
 
 rm_files() {
-  files="`grep -v '^$' | sort -u`"
+  files="`<&3 grep -v '^$' | sort -u`"
   [ -z "$files" ] && return
 
   echo "$files"
-  read -p "About to delete [enter to continue]: " </dev/tty
+  read -p "About to delete [enter to continue]: "
   echo
 
   rm -rf $files
@@ -85,7 +85,7 @@ install() {
   brokelinks="`find_filter -L $tgt_links -type l`"
 
   NL=$'\n'
-  rm_files <<< "$existdirs$NL$existlinks$NL$brokelinks"
+  rm_files 3<<< "$existdirs$NL$existlinks$NL$brokelinks"
 
   for dst in $tgt_dirs; do
     # Existence check speeds things up...
@@ -123,7 +123,7 @@ unsync() {
 
 uninstall() {
   : ${tgt_links=`tgt_links`}
-  rm_files <<< "$tgt_links"
+  rm_files 3<<< "$tgt_links"
 }
 
 env() {
@@ -140,7 +140,7 @@ ls() {
 clean() {
   kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
   brokelinks="`find_filter -L $kichlinks -type l`"
-  rm_files <<< "$brokelinks"
+  rm_files 3<<< "$brokelinks"
 }
 
 case "${1-}" in
