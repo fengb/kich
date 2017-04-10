@@ -20,7 +20,7 @@ function to_tgt {
 
 function or_names {
   __=$'\\\n'
-  sed -e '/^ *$/d' -e '1!'"s/^/-or$__-name$__/" -e "1s/^/-name$__/"
+  sed -e '/^ *$/d' -e '1!'"s/^/-or${__}-name${__}/" -e "1s/^/-name${__}/"
 }
 
 function src_find {
@@ -71,7 +71,7 @@ function rm_files {
     [Yy]*)
       rm -rf $files
       ;;
-    [Nn]*)
+    *)
       return 1
       ;;
   esac
@@ -90,8 +90,8 @@ function install {
   existlinks="`find_filter $tgt_links -not -type l`"
   brokelinks="`find_filter -L $tgt_links -type l`"
 
-  NL=$'\n'
-  rm_files 3<<< "$existdirs$NL$existlinks$NL$brokelinks"
+  __=$'\n'
+  rm_files 3<<< "$existdirs${__}$existlinks${__}$brokelinks"
 
   for dst in $tgt_dirs; do
     # Existence check speeds things up...
