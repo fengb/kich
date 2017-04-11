@@ -1,6 +1,7 @@
-dir="`dirname "${BASH_SOURCE[0]}"`"
+__dir__="`dirname "${BASH_SOURCE[0]}"`"
+__file__="`basename "${BASH_SOURCE[0]}"`"
 
-source "$dir/../kich"
+source "$__dir__/../kich"
 
 __=$'\n'
 
@@ -24,12 +25,12 @@ test_abspath() {
 }
 
 test_find_filter() {
-  assert_equals "${BASH_SOURCE[0]}" \
-                "`find_filter ${BASH_SOURCE[0]}`"
-  assert_equals "${BASH_SOURCE[0]}" \
-                "`find_filter ${BASH_SOURCE[0]} -type f`"
+  assert_equals "$__file__" \
+                "`find_filter $__file__`"
+  assert_equals "$__file__" \
+                "`find_filter $__file__ -type f`"
   assert_equals "" \
-                "`find_filter ${BASH_SOURCE[0]} -type d`"
+                "`find_filter $__file__ -type d`"
 }
 
 test_rm_files() {
