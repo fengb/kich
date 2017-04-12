@@ -10,4 +10,4 @@ Feature: kich sync
             """
             Charlie Delta
             """
-        And in KICH_TGT there should be a symlink 'foo'
+        And in KICH_TGT there should be a symlink 'foo' to '$KICH_SRC/foo'

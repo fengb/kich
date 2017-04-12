@@ -1,4 +1,8 @@
+require 'test/unit/assertions'
 require 'fileutils'
+require 'tmpdir'
+
+World(Test::Unit::Assertions)
 
 Before do
   ENV['KICH_SRC'] = Dir.mktmpdir
