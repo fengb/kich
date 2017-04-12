@@ -20,7 +20,7 @@ function to_tgt {
 
 function or_names {
   __=$'\\\n'
-  sed -e '/^ *$/d' -e '1!'"s/^/-or$__-name$__/" -e "1s/^/-name$__/"
+  sed -e '/^ *$/d' -e '1!'"s/^/-or${__}-name${__}/" -e "1s/^/-name${__}/"
 }
 
 function src_find {
@@ -38,7 +38,6 @@ function tgt_links {
 }
 
 function abspath {
-  [ ! -e "$1" ] && error "'$1' does not exist"
   echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
@@ -47,8 +46,8 @@ function find_filter {
 }
 
 function src_from {
-  [[ "$1" != "$KICH_TGT"* ]] && error "'$1' not in \$KICH_TGT ($KICH_TGT)"
-  [[ "$1" == "$KICH_SRC"* ]] && error "'$1' already synced"
+  [[ "$1" != "$KICH_TGT"* ]] && panic "'$1' not in \$KICH_TGT ($KICH_TGT)"
+  [[ "$1" == "$KICH_SRC"* ]] && panic "'$1' already synced"
 
   src="${KICH_SRC}${1#"$KICH_TGT"}"
   if [ -f "$1" ]; then
@@ -67,13 +66,18 @@ function rm_files {
   [ -z "$files" ] && return
 
   echo "$files"
-  read -p "About to delete [enter to continue]: "
-  echo
-
-  rm -rf $files
+  read -p "About to delete. Proceed [y/N]? " yn
+  case "$yn" in
+    [Yy]*)
+      rm -rf $files
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
-function error {
+function panic {
   echo "kich: $1" >&2
   exit 1
 }
@@ -86,8 +90,8 @@ function install {
   existlinks="`find_filter $tgt_links -not -type l`"
   brokelinks="`find_filter -L $tgt_links -type l`"
 
-  NL=$'\n'
-  rm_files 3<<< "$existdirs$NL$existlinks$NL$brokelinks"
+  __=$'\n'
+  rm_files 3<<< "$existdirs${__}$existlinks${__}$brokelinks"
 
   for dst in $tgt_dirs; do
     # Existence check speeds things up...
@@ -104,8 +108,8 @@ function install {
 
 function sync {
   tgt=${1-}
-  [ ! -e "$tgt" ] && error "'$tgt' is not found"
-  [ -L "$tgt" ] && error "'$tgt' is a symlink"
+  [ ! -e "$tgt" ] && panic "'$tgt' is not found"
+  [ -L "$tgt" ] && panic "'$tgt' is a symlink"
 
   src="$(src_from "`abspath "$tgt"`")"
   mkdir -p "${src%/*}"
@@ -114,11 +118,11 @@ function sync {
 }
 
 function unsync {
-  [ ! -L "$1" ] && error "'$1' is not a symlink"
+  [ ! -L "$1" ] && panic "'$1' is not a symlink"
 
   src="$(readlink "`abspath "$1"`")"
-  [[ "$src" != "$KICH_SRC"* ]] && error "'$1' is not synced"
-  [ ! -e "$src" ] && error "'$src' is not found"
+  [[ "$src" != "$KICH_SRC"* ]] && panic "'$1' is not synced"
+  [ ! -e "$src" ] && panic "'$src' is not found"
 
   rm "$1"
   mv "$src" "$1"
@@ -159,7 +163,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
       install
       ;;
     *)
-      error "'$1' is not a command"
+      panic "'$1' is not a command"
       ;;
   esac
 fi
