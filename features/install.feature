@@ -1,7 +1,7 @@
 Feature: kich install
 
   Scenario: fresh install
-      Given there are files in KICH_SRC:
+      Given in KICH_SRC there are files:
             """
             abc
             directory/bazbay
@@ -16,15 +16,17 @@ Feature: kich install
             ⇋  $KICH_TGT/directory/bazbay
             ⇋  $KICH_TGT/path
             """
-        And there should be links in KICH_TGT:
+        And in KICH_TGT there should be symlinks:
             """
             abc
             directory/bazbay
             path
             """
-        And there should not be files in KICH_TGT:
+        And in KICH_TGT there should not be files:
             """
             path.link/banana
             path.link/chocolate
             path.link/peanut-butter
             """
+       When I execute 'kich install'
+       Then there should be no output

@@ -103,13 +103,14 @@ function install {
 }
 
 function sync {
-  [ ! -e "$1" ] && error "'$1' is not found"
-  [ -L "$1" ] && error "'$1' is a symlink"
+  tgt=${1-}
+  [ ! -e "$tgt" ] && error "'$tgt' is not found"
+  [ -L "$tgt" ] && error "'$tgt' is a symlink"
 
-  src="$(src_from "`abspath "$1"`")"
+  src="$(src_from "`abspath "$tgt"`")"
   mkdir -p "${src%/*}"
-  mv "$1" "$src"
-  ln -s "$src" "$1"
+  mv "$tgt" "$src"
+  ln -s "$src" "$tgt"
 }
 
 function unsync {
