@@ -9,7 +9,7 @@ function init {
 
   : ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
   : ${KICH_TGT="$HOME"}
-  : ${KICH_IGNORE="`cat "$KICH_SRC/.kichignore" 2>/dev/null; echo .kichignore`"}
+  : ${KICH_IGNORE="`echo .kichignore; cat "$KICH_SRC/.kichignore" 2>/dev/null || true`"}
 
   IFS=$'\n'
 }
@@ -63,7 +63,7 @@ function src_from {
 }
 
 function rm_files {
-  files="`<&3 grep -v '^$' | sort -u`"
+  files="`<&3 sed -e '/^$/d' | sort -u`"
   [ -z "$files" ] && return
 
   echo "$files"
