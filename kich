@@ -5,8 +5,6 @@
 #set -x
 
 function init {
-  set -euo pipefail
-
   : ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
   : ${KICH_TGT="$HOME"}
   : ${KICH_IGNORE="`echo .kichignore; cat "$KICH_SRC/.kichignore" 2>/dev/null || true`"}
@@ -151,6 +149,8 @@ function clean {
 }
 
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  set -euo pipefail
+
   init
 
   case "${1-}" in

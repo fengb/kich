@@ -1,15 +1,34 @@
 #!/bin/bash
 
-function cleanup {
-  [ ! -z "${pid-}" ] && kill "$pid" &>/dev/null
-  wait
-  exit $?
+set -u
+
+source ./kich
+
+init
+
+PID="$$"
+
+trap reap EXIT
+function reap {
+  pkill -P "$PID"
+  exit
 }
 
-trap cleanup EXIT
+function watch {
+  exec fswatch -r -x --event-flag-separator : "$KICH_SRC"
+}
 
+function process {
+  while read -r line; do
+    if [ -n "$line" ]; then
+      echo "$line"
+      echo DONE
+    fi
+  done
+}
+
+# TODO: proactively handle broken pipe (when 'process' dies)
 while true; do
-  read </dev/tty &
-  pid="$!"
-  wait "$pid"
+  watch | process
+  reap
 done
