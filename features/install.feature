@@ -1,7 +1,8 @@
 Feature: kich install
 
   Scenario: fresh install
-      Given in KICH_SRC there are files:
+      Given in KICH_SRC
+        And there are files:
             """
             abc
             dir/bay
@@ -16,11 +17,13 @@ Feature: kich install
             ⇋  $KICH_TGT/dir/bay
             ⇋  $KICH_TGT/path
             """
-        And in KICH_TGT there should be symlinks:
+        And in KICH_TGT
+        And there should be symlinks:
             | abc     | $KICH_SRC/abc       |
             | dir/bay | $KICH_SRC/dir/bay   |
             | path    | $KICH_SRC/path.link |
-        And in KICH_TGT there should not be files:
+        And in KICH_TGT
+        And there should not be files:
             """
             path.link/banana
             path.link/chocolate
