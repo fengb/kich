@@ -4,7 +4,7 @@ require 'tmpdir'
 
 World(Test::Unit::Assertions)
 
-WORK_DIR = File.expand_path('../..', __dir__)
+WORK_DIR = File.expand_path('../../..', __FILE__)
 
 Before do
   ENV['KICH_SRC'] = Dir.mktmpdir
