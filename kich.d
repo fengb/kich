@@ -20,9 +20,17 @@ function watch {
 
 function process {
   while read -r line; do
-    if [ -n "$line" ]; then
-      echo "$line"
-      echo DONE
+    [ -z "$line" ] && continue
+
+    file="${line% *}"
+    flags="${line##* }"
+
+    if [[ "$flags" == *"IsFile"* || ( "$flags" == *"IsDir"* && "$file" == *".link" ) ]]; then
+      if [ -e "$file" ]; then
+        echo "run_install $file"
+      else
+        echo "run_delete $file"
+      fi
     fi
   done
 }
