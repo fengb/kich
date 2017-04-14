@@ -14,8 +14,16 @@ function reap {
   exit
 }
 
+function eexec {
+  command -v "$1" &>/dev/null && exec "$@"
+}
+
 function watch {
-  exec fswatch --recursive --event-flags --exclude='\.link/.*' --event-flag-separator=, "$KICH_SRC"
+  eexec fswatch --recursive --event-flags --exclude='\.link/.*' --event-flag-separator=, "$KICH_SRC"
+}
+
+function notify {
+  eexec osascript -e "display notification \"${1-???}\" with title \"kich\""
 }
 
 function process {
@@ -35,10 +43,6 @@ function process {
       notify "✗  $tgt"
     fi
   done
-}
-
-function notify {
-  osascript -e "display notification \"${1-???}\" with title \"kich\""
 }
 
 # TODO: proactively handle broken pipe (when 'process' dies)
