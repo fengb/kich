@@ -15,7 +15,7 @@ function reap {
 }
 
 function watch {
-  exec fswatch -r -x --event-flag-separator : "$KICH_SRC"
+  exec fswatch --recursive --event-flags --exclude='\.link/.*' --event-flag-separator=, "$KICH_SRC"
 }
 
 function process {
