@@ -25,14 +25,20 @@ function process {
     file="${line% *}"
     flags="${line##* }"
 
-    if [[ "$flags" == *"IsFile"* || ( "$flags" == *"IsDir"* && "$file" == *".link" ) ]]; then
-      if [ -e "$file" ]; then
-        echo "run_install $file"
-      else
-        echo "run_delete $file"
-      fi
+    [[ "$flags" == *"IsSymLink"* ]] && continue
+    [[ "$flags" == *"IsDir"* && "$file" != *".link" ]] && continue
+
+    tgt="`to_tgt <<<"$file"`"
+    if [ -e "$file" ]; then
+      notify "⇋  $tgt"
+    else
+      notify "✗  $tgt"
     fi
   done
+}
+
+function notify {
+  osascript -e "display notification \"${1-???}\" with title \"kich\""
 }
 
 # TODO: proactively handle broken pipe (when 'process' dies)
