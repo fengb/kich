@@ -80,7 +80,7 @@ function panic {
   exit 1
 }
 
-function install {
+function run_install {
   : ${tgt_dirs=`tgt_dirs`}
   : ${tgt_links=`tgt_links`}
 
@@ -104,7 +104,7 @@ function install {
   done
 }
 
-function sync {
+function run_sync {
   tgt=${1-}
   [ ! -e "$tgt" ] && panic "'$tgt' is not found"
   [ -L "$tgt" ] && panic "'$tgt' is a symlink"
@@ -115,7 +115,7 @@ function sync {
   ln -s "$src" "$tgt"
 }
 
-function unsync {
+function run_unsync {
   [ ! -L "$1" ] && panic "'$1' is not a symlink"
 
   src="$(readlink "`abspath "$1"`")"
@@ -126,23 +126,23 @@ function unsync {
   mv "$src" "$1"
 }
 
-function uninstall {
+function run_uninstall {
   : ${tgt_links=`tgt_links`}
   rm_files 3<<< "$tgt_links"
 }
 
-function env {
+function run_env {
   echo "KICH_SRC='$KICH_SRC'"
   echo "KICH_TGT='$KICH_TGT'"
   echo "KICH_IGNORE='$KICH_IGNORE'"
 }
 
-function ls {
+function run_ls {
   : ${tgt_links=`tgt_links`}
   find_filter -L $tgt_links -not -type l
 }
 
-function clean {
+function run_clean {
   kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
   brokelinks="`find_filter -L $kichlinks -type l`"
   rm_files 3<<< "$brokelinks"
@@ -155,7 +155,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 
   case "${1-}" in
     install|sync|unsync|uninstall|env|ls|clean)
-      command="$1"
+      command="run_$1"
       shift
       "$command" "$@"
       ;;

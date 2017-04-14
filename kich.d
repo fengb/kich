@@ -29,6 +29,7 @@ function process {
 
 # TODO: proactively handle broken pipe (when 'process' dies)
 while true; do
+  run_install
   watch | process
   reap
 done
