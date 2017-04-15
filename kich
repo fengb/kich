@@ -7,9 +7,9 @@
 function init {
   set -euo pipefail
 
-  : ${KICH_SRC="`cd $HOME/.kich && pwd -P`"}
+  [ -z "${KICH_SRC-}" ] && source "$HOME/.kichconfig"
   : ${KICH_TGT="$HOME"}
-  : ${KICH_IGNORE="`echo .kichignore; cat "$KICH_SRC/.kichignore" 2>/dev/null || true`"}
+  : ${KICH_IGNORE=''}
 
   IFS=$'\n'
 }
@@ -20,13 +20,16 @@ function to_tgt {
 
 function or_names {
   __=$'\\\n'
-  sed -e '/^ *$/d' -e '1!'"s/^/-or${__}-name${__}/" -e "1s/^/-name${__}/"
+  sed -e '/^ *$/d' -e 's/^  *//' -e "s/^/-or${__}-name${__}/" | sed -e '1d'
 }
 
 function src_find {
-  src_find_exclude="`or_names <<< "$KICH_IGNORE"`"
-
-  find "$KICH_SRC" \( $src_find_exclude \) -prune -or \( "$@" \) -print
+  if [ -z "$KICH_IGNORE" ]; then
+    find "$KICH_SRC" "$@"
+  else
+    src_find_exclude="`or_names <<< "$KICH_IGNORE"`"
+    find "$KICH_SRC" \( $src_find_exclude \) -prune -or \( "$@" \) -print
+  fi
 }
 
 function tgt_dirs {
