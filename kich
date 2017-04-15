@@ -63,14 +63,11 @@ function rm_files {
   files="`<&3 sed -e '/^$/d' | sort -u`"
   [ -z "$files" ] && return
 
-  echo "$files"
+  sed 's/^/✗  /' <<<"$files"
   read -p "About to delete. Proceed [y/N]? " yn
   case "$yn" in
     [Yy]*)
       rm -rf $files
-      ;;
-    *)
-      return 1
       ;;
   esac
 }
