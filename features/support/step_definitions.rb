@@ -35,7 +35,7 @@ Given "there is a file '$file' with content:" do |file, contents|
 end
 
 When "I execute 'kich $command'" do |command|
-  $output = `"#{WORK_DIR}/kich" #{command}`
+  $output = `bash -c '"#{WORK_DIR}/kich" #{command}'`
 end
 
 Then "there should be output:" do |string|

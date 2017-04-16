@@ -4,8 +4,10 @@
 #exec 3>&2 2>trace.log
 #set -x
 
-function init {
+function init_env {
   set -euo pipefail
+
+  [ -n "${KICH_CONFIG-}" ] && source "$KICH_CONFIG"
 
   [ -z "${KICH_SRC-}" ] && source "$HOME/.kichconfig"
   : ${KICH_TGT="$HOME"}
@@ -153,8 +155,8 @@ function clean {
   rm_files 3<<< "$brokelinks"
 }
 
-if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
-  init
+function run {
+  init_env
 
   case "${1-}" in
     install|sync|unsync|uninstall|env|ls|clean)
@@ -169,4 +171,23 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
       panic "'$1' is not a command"
       ;;
   esac
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  while getopts ":c:" o; do
+    case "$o" in
+      c*)
+        KICH_CONFIG="$OPTARG"
+        ;;
+      \?)
+        panic "option -$OPTARG not recognized"
+        ;;
+      :)
+        panic "option -$OPTARG requires an argument."
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  run "$@"
 fi
