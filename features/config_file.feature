@@ -24,3 +24,15 @@ Feature: kich -c FILE
             KICH_TGT='$KICH_TGT'
             KICH_IGNORE='salad'
             """
+  Scenario: no file
+       When I execute 'kich -c'
+       Then there should be error:
+            """
+            kich: '-c' requires an argument
+            """
+  Scenario: missing file
+       When I execute 'kich -c MISSINGNO.'
+       Then there should be error:
+            """
+            kich: config file 'MISSINGNO.' not found
+            """

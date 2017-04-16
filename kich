@@ -177,13 +177,14 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   while getopts ":c:" o; do
     case "$o" in
       c*)
+        [ ! -e "$OPTARG" ] && panic "config file '$OPTARG' not found"
         KICH_CONFIG="$OPTARG"
         ;;
       \?)
-        panic "option -$OPTARG not recognized"
+        panic "'-$OPTARG' not recognized"
         ;;
       :)
-        panic "option -$OPTARG requires an argument."
+        panic "'-$OPTARG' requires an argument"
         ;;
     esac
   done
