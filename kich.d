@@ -18,36 +18,39 @@ function eexec {
   command -v "$1" &>/dev/null && exec "$@"
 }
 
-function run_fswatch {
-  fswatch --recursive --event-flags --exclude='\.link/.*' --event-flag-separator=, "$KICH_SRC" | while read -r line; do
-    process_fswatch "$line"
+function watch {
+  eexec fswatch --recursive --one-per-batch --exclude='\.link/.*' "$KICH_SRC"
+
+  # Naive "watch"
+  while true; do
+    sleep 60
+    echo
   done
 }
 
-function process_fswatch {
-  line="${1-}"
-  [ -z "$line" ] && continue
-
-  file="${line% *}"
-  flags="${line##* }"
-
-  [[ "$flags" == *"IsSymLink"* ]] && continue
-  [[ "$flags" == *"IsDir"* && "$file" != *".link" ]] && continue
-
-  tgt="`to_tgt <<<"$file"`"
-  if [ -e "$file" ]; then
-    log "⇋  $tgt"
-  else
-    log "✗  $tgt"
-  fi
+function diff_added {
+  sed -e '/^>/!d' -e 's/> //'
 }
 
-function run_sleep {
-  while true; do
-    sleep 60
-    yes | run_install | while read -r line; do
-      log "$line"
-    end
+function diff_removed {
+  sed -e '/^</!d' -e 's/< //'
+}
+
+function process {
+  changes="`diff "$1" "$2"`"
+
+  <<<"$changes" diff_added | to_tgt | while read -r tgt; do
+    if [ ! -e "$tgt" ]; then
+      log "⇋  $tgt"
+    else
+      log "!  $tgt"
+    fi
+  done
+
+  <<<"$changes" diff_removed | to_tgt | while read -r tgt; do
+    if [ -L "$tgt" ]; then
+      log "✗  $tgt"
+    fi
   done
 }
 
@@ -60,11 +63,13 @@ function log {
 
 # TODO: proactively handle broken pipe (when 'process' dies)
 while true; do
-  run_install
-  if command -v fswatch &>/dev/null; then
-    run_fswatch
-  else
-    run_sleep
-  fi
+  prev_links="`src_links`"
+
+  watch | while read -r; do
+    curr_links="`src_links`"
+    process <(echo "$prev_links") <(echo "$curr_links")
+    prev_links="$curr_links"
+  done
+
   reap
 done
