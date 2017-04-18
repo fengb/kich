@@ -39,16 +39,23 @@ function diff_removed {
 function process {
   changes="`diff "$1" "$2"`"
 
-  <<<"$changes" diff_added | to_tgt | while read -r tgt; do
+  <<<"$changes" diff_added | while read -r src; do
+    tgt="`tgt_from "$src"`"
     if [ ! -e "$tgt" ]; then
+      tgtdir="${tgt%/*}"
+
+      mkdir -p "$tgtdir"
+      ln -s "$src" "$tgt"
       log "⇋  $tgt"
     else
       log "!  $tgt"
     fi
   done
 
-  <<<"$changes" diff_removed | to_tgt | while read -r tgt; do
-    if [ -L "$tgt" ]; then
+  <<<"$changes" diff_removed | while read -r src; do
+    tgt="`tgt_from "$src"`"
+    if [ -L "$tgt" ] && [ "`readlink "$tgt"`" = "$src" ]; then
+      rm "$tgt"
       log "✗  $tgt"
     fi
   done

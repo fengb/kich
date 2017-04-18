@@ -43,6 +43,13 @@ function find_filter {
   find "$@" -maxdepth 0 2>/dev/null || true
 }
 
+function tgt_from {
+  [[ "$1" != "$KICH_SRC"* ]] && panic "'$1' not in \$KICH_SRC ($KICH_SRC)"
+
+  tgt="${KICH_TGT}${1#"$KICH_SRC"}"
+  echo "${tgt%.link}"
+}
+
 function src_from {
   [[ "$1" != "$KICH_TGT"* ]] && panic "'$1' not in \$KICH_TGT ($KICH_TGT)"
   [[ "$1" == "$KICH_SRC"* ]] && panic "'$1' already synced"
