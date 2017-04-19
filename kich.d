@@ -8,10 +8,9 @@ init
 
 PID="$$"
 
-trap reap EXIT
+trap "{ reap; exit 1; } " INT TERM EXIT
 function reap {
   pkill -P "$PID"
-  exit
 }
 
 function eexec {
