@@ -65,6 +65,7 @@ function log {
   echo "kich - $message"
   logger "kich - $message"
   eexec osascript -e "display notification \"$message\" with title \"kich\""
+  eexec notify-send 'kich' "$message"
 }
 
 # TODO: proactively handle broken pipe (when 'process' dies)
