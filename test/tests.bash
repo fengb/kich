@@ -35,18 +35,18 @@ test_find_filter() {
 
 test_rm_files() {
   tmp="`mktemp`"
-  assert "yes | rm_files 3<<<"$tmp""
+  assert "yes | rm_files 3<<<\"$tmp\""
   assert "[ ! -e $tmp ]"
 
   tmp="`mktemp`"
-  assert "<<<yes rm_files 3<<<"$tmp""
+  assert "<<<yes rm_files 3<<<\"$tmp\""
   assert "[ ! -e $tmp ]"
 
   tmp="`mktemp`"
-  assert_fail "<<<no rm_files 3<<<"$tmp""
+  <<<no rm_files 3<<<"$tmp"
   assert "[ -e $tmp ]"
 
-  assert_equals "$tmp" \
+  assert_equals "✗  $tmp" \
                 "`yes | rm_files 3<<<"$tmp"`"
   assert "[ ! -e $tmp ]"
 }
