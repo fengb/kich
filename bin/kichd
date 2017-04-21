@@ -2,9 +2,9 @@
 
 set -u
 
-source ./kich
+source "${0%/*}/kich"
 
-init
+init_env
 
 PID="$$"
 

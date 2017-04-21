@@ -1,5 +1,5 @@
-__dir__="`dirname "${BASH_SOURCE[0]}"`"
-__file__="`basename "${BASH_SOURCE[0]}"`"
+__dir__="${0%/*}"
+__file__="${0##*/}"
 
 source "$__dir__/../bin/kich"
 
