@@ -18,9 +18,9 @@ function eexec {
 }
 
 function watch {
-  eexec fswatch --recursive --one-per-batch --exclude='\.link/.*' "$KICH_SRC"
+  eexec fswatch --recursive --directories --one-per-batch --exclude='\.link/.*' "$KICH_SRC"
 
-  # Naive "watch"
+  # sleep based "watch"
   while true; do
     sleep 60
     echo

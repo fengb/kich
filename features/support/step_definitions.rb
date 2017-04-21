@@ -36,7 +36,7 @@ Given "there is a file '$file' with content:" do |file, contents|
 end
 
 When "I execute 'kich $args'" do |args|
-  out, err, status = Open3.capture3(%Q[bash -c '"#{WORK_DIR}/kich" #{args}'])
+  out, err, status = Open3.capture3(%Q[bash -c '"#{WORK_DIR}/bin/kich" #{args}'])
   $last_kich = { out: out, err: err, status: status }
 end
 

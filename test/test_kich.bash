@@ -1,7 +1,7 @@
 __dir__="`dirname "${BASH_SOURCE[0]}"`"
 __file__="`basename "${BASH_SOURCE[0]}"`"
 
-source "$__dir__/../kich"
+source "$__dir__/../bin/kich"
 
 __=$'\n'
 
