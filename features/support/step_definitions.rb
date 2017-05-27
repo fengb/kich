@@ -24,6 +24,13 @@ Given "there is a file '$file'" do |file|
   FileUtils.touch(file)
 end
 
+Given "there are $num files" do |num|
+  num.to_i.times do |i|
+    words = WORDS.sample(i % 4 + 2)
+    step "there is a file '#{words.join('/')}'"
+  end
+end
+
 Given "there are files:" do |files|
   files.each_line do |line|
     step "there is a file '#{line.strip}'"
@@ -36,7 +43,7 @@ Given "there is a file '$file' with content:" do |file, contents|
 end
 
 When "I execute 'kich $args'" do |args|
-  out, err, status = Open3.capture3(%Q[bash -c '"#{WORK_DIR}/bin/kich" #{args}'])
+  out, err, status = Open3.capture3(%Q[bash -c '"#{PROJECT_DIR}/bin/kich" #{args}'])
   $last_kich = { out: out, err: err, status: status }
 end
 
