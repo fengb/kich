@@ -4,7 +4,7 @@ script: make
 
 after_success:
   - 'wget https://raw.githubusercontent.com/shelfgauge/shelfgauge-report/master/node/report.js'
-  - '<build/benchmark.json node report.js https://shelfgauge.herokuapp.com/repo/github/fengb~kich/suite'
+  - 'node report.js build/benchmark.json https://shelfgauge.herokuapp.com/repo/github/fengb~kich/suite'
 
 os:
   - linux
