@@ -1,7 +1,6 @@
 require 'fileutils'
 require 'open3'
 require 'tempfile'
-require 'pry'
 
 def env_expand(string)
   string.gsub(/\$([A-Z_]+)/) { ENV[$1] }
@@ -15,6 +14,7 @@ After do
 end
 
 Given "I pry" do
+  require 'pry'
   binding.pry
 end
 
