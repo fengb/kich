@@ -7,8 +7,8 @@ Feature: benchmark existing
 
   @benchmark
   Scenario: install noop
-       Then I execute 'kich install'
+       Then I benchmark 'kich install'
 
   @benchmark
   Scenario: uninstall existing
-       Then I execute 'kich uninstall <<<y'
+       Then I benchmark 'kich uninstall <<<y'
