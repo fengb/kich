@@ -39,7 +39,7 @@ end
 
 Given "there are $num files" do |num|
   num.to_i.times do |i|
-    words = WORDS.sample(i % 4 + 2)
+    words = WORDS.sample(i % 3 + 3)
     step "there is a file '#{words.join('/')}'"
   end
 end

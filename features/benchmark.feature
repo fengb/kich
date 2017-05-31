@@ -2,7 +2,7 @@ Feature: benchmark
 
   Background:
       Given in KICH_SRC
-        And there are 100 files
+        And there are 1000 files
 
   @benchmark
   Scenario: install fresh
