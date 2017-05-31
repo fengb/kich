@@ -1,23 +1,35 @@
 Feature: kich -c FILE
 
-  Scenario: <(echo KICH_SRC)
-       When I execute 'kich -c <(echo KICH_SRC='banana') env'
+  Scenario: KICH_SRC='banana'
+      Given there is a $configfile with content:
+            """
+            KICH_SRC='banana'
+            """
+       When I execute 'kich -c $configfile env'
        Then there should be output:
             """
             KICH_SRC='banana'
             KICH_TGT='$KICH_TGT'
             KICH_IGNORE=''
             """
-  Scenario: <(echo KICH_TGT)
-       When I execute 'kich -c <(echo KICH_TGT='cheese') env'
+  Scenario: KICH_TGT='cheese'
+      Given there is a $configfile with content:
+            """
+            KICH_TGT='cheese'
+            """
+       When I execute 'kich -c $configfile env'
        Then there should be output:
             """
             KICH_SRC='$KICH_SRC'
             KICH_TGT='cheese'
             KICH_IGNORE=''
             """
-  Scenario: <(echo KICH_IGNORE)
-       When I execute 'kich -c <(echo KICH_IGNORE='salad') env'
+  Scenario: KICH_IGNORE='salad'
+      Given there is a $configfile with content:
+            """
+            KICH_IGNORE='salad'
+            """
+       When I execute 'kich -c $configfile env'
        Then there should be output:
             """
             KICH_SRC='$KICH_SRC'

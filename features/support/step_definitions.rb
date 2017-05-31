@@ -1,13 +1,20 @@
 require 'fileutils'
 require 'open3'
+require 'tempfile'
+require 'pry'
 
-def expand(string)
-  string.gsub(/\$KICH_TGT/, ENV['KICH_TGT'])
-        .gsub(/\$KICH_SRC/, ENV['KICH_SRC'])
+def env_expand(string)
+  string.gsub(/\$([A-Z_]+)/) { ENV[$1] }
+end
+
+After do
+  if $configfile
+    $configfile.unlink
+    $configfile = nil
+  end
 end
 
 Given "I pry" do
-  require 'pry'
   binding.pry
 end
 
@@ -17,6 +24,12 @@ end
 
 Given "in KICH_TGT" do
   FileUtils.cd ENV['KICH_TGT']
+end
+
+Given /there is a \$configfile with content:/ do |string|
+  $configfile = Tempfile.new
+  $configfile.write(string)
+  $configfile.close
 end
 
 Given "there is a file '$file'" do |file|
@@ -43,6 +56,10 @@ Given "there is a file '$file' with content:" do |file, contents|
 end
 
 When "I execute 'kich $args'" do |args|
+  if $configfile
+    args = args.gsub('$configfile', $configfile.path)
+  end
+
   out, err, status = Open3.capture3(%Q[bash -c '"#{PROJECT_DIR}/bin/kich" #{args}'])
   $last_kich = { out: out, err: err, status: status }
 end
@@ -51,7 +68,7 @@ Then "there should be output:" do |string|
   if $last_kich[:out].strip == ""
     fail $last_kich[:err]
   end
-  assert_equal expand(string).strip, $last_kich[:out].strip
+  assert_equal env_expand(string).strip, $last_kich[:out].strip
 end
 
 Then "there should be no output" do
@@ -75,7 +92,7 @@ end
 
 Then "there should be a symlink '$file' to '$target'" do |file, target|
   assert File.symlink?(file)
-  assert_equal File.realpath(expand(target)), File.realpath(file)
+  assert_equal File.realpath(env_expand(target)), File.realpath(file)
 end
 
 Then "there should be symlinks:" do |table|
