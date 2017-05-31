@@ -9,9 +9,12 @@ INSTALL_FILES=`find $(DIRS) -type f 2>/dev/null`
 
 PREFIX?=/usr/local
 
-test: test/test*
+test: test/* features/*
 	test/bash_unit -f tap test/test*
-	cucumber
+	cucumber --tags ~@benchmark
+
+benchmark: features/*
+	cucumber --tags @benchmark
 
 install:
 	for dir in $(INSTALL_DIRS); do mkdir -p $(DESTDIR)$(PREFIX)/$$dir; done

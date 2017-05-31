@@ -1,6 +1,6 @@
 language: ruby
 install: bundle install
-script: make
+script: make test && make benchmark
 
 after_success:
   - 'wget https://raw.githubusercontent.com/shelfgauge/shelfgauge-report/master/node/report.js'
