@@ -6,9 +6,13 @@ Feature: benchmark existing
         And I execute 'kich install'
 
   @benchmark
-  Scenario: install noop
+  Scenario: install 0/1000 files
        Then I benchmark 'kich install'
 
   @benchmark
-  Scenario: uninstall existing
+  Scenario: clean 1000 unbroken files
+       Then I benchmark 'kich install'
+
+  @benchmark
+  Scenario: uninstall 1000 files
        Then I benchmark 'kich uninstall <<<y'
