@@ -111,9 +111,7 @@ function run_install {
 
   rm_files $existdirs $existlinks $brokelinks
 
-  for dst in $tgt_dirs; do
-    mkdir -p "$dst"
-  done
+  mkdir -p $tgt_dirs
 
   for dst in $tgt_links; do
     if [ ! -e "$dst" ]; then
