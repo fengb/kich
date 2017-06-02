@@ -1,4 +1,4 @@
-$benchmarks = {}
+$benchmarks = []
 
 Before('@benchmark') do |scenario|
   $scenario_name = scenario.name
@@ -7,7 +7,7 @@ end
 Then "I benchmark '$cmd'" do |cmd|
   start = Time.now
   step "I execute '#{cmd}'"
-  $benchmarks[$scenario_name] = Time.now - start
+  $benchmarks << { name: $scenario_name, value: Time.now - start }
 end
 
 at_exit do
@@ -15,9 +15,5 @@ at_exit do
 
   FileUtils.mkdir_p BUILD_DIR
   file = File.join(BUILD_DIR, 'benchmark.json')
-  IO.write file, JSON.generate(
-    $benchmarks.map do |(key, value)|
-      { name: key, value: value }
-    end
-  )
+  IO.write file, JSON.pretty_generate($benchmarks)
 end
