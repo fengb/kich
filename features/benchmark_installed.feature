@@ -1,4 +1,4 @@
-Feature: benchmark existing
+Feature: benchmark installed
 
   Background:
       Given in KICH_SRC

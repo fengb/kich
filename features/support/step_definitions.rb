@@ -38,7 +38,7 @@ Given "there is a file '$file'" do |file|
 end
 
 Given "there are $num files" do |num|
-  num.to_i.times do |i|
+  Integer(num.gsub(',', '')).times do |i|
     words = WORDS.sample(i % 3 + 3)
     step "there is a file '#{words.join('/')}'"
   end
