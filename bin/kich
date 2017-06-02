@@ -32,8 +32,20 @@ function src_find {
   fi
 }
 
+# Removes paths that are prefixes of the next path:
+# Example:
+#     Library/CoreData
+#     Library/CoreData/ExternalRecords
+#     Library/CoreData/ExternalRecords/HTMLNotes
+#   becomes
+#     Library/CoreData/ExternalRecords/HTMLNotes
+function remove_prefix_paths {
+  __=$'\\\n'
+  sed '$!N; /\(.*\)\n\1\/.*/!P;D'
+}
+
 function src_dirs {
-  src_find -not \( -name '*.link' -prune \) -type d
+  src_find -not \( -name '*.link' -prune \) -type d | remove_prefix_paths
 }
 
 function src_links {
@@ -101,8 +113,7 @@ function run_install {
   rm_files 3<<< "$existdirs${__}$existlinks${__}$brokelinks"
 
   for dst in $tgt_dirs; do
-    # Existence check speeds things up...
-    [ ! -e "$dst" ] && mkdir -p "$dst"
+    mkdir -p "$dst"
   done
 
   for dst in $tgt_links; do
