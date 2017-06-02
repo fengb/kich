@@ -84,7 +84,7 @@ function src_from {
 }
 
 function rm_files {
-  files="`<&3 sed -e '/^$/d' | sort -u`"
+  files="`<<<"$*" sed -e '/^$/d' | sort -u`"
   [ -z "$files" ] && return
 
   sed 's/^/✗  /' <<<"$files"
@@ -109,8 +109,7 @@ function run_install {
   existlinks="`find_filter $tgt_links -not -type l`"
   brokelinks="`find_filter -L $tgt_links -type l`"
 
-  __=$'\n'
-  rm_files 3<<< "$existdirs${__}$existlinks${__}$brokelinks"
+  rm_files $existdirs $existlinks $brokelinks
 
   for dst in $tgt_dirs; do
     mkdir -p "$dst"
@@ -148,7 +147,7 @@ function run_unsync {
 
 function run_uninstall {
   tgt_links="`src_links | to_tgt`"
-  rm_files 3<<< "$tgt_links"
+  rm_files $tgt_links
 }
 
 function run_env {
@@ -165,7 +164,7 @@ function run_ls {
 function run_clean {
   kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
   brokelinks="`find_filter -L $kichlinks -type l`"
-  rm_files 3<<< "$brokelinks"
+  rm_files $brokelinks
 }
 
 function run {
