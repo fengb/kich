@@ -8,12 +8,12 @@ Feature: benchmark large target directory
 
   @benchmark
   Scenario: install 100 files into target with 10,000 files
-       Then I benchmark 'kich install'
+       Then I execute 'kich install'
 
   @benchmark
   Scenario: clean 10,000 unbroken files
-       Then I benchmark 'kich clean'
+       Then I execute 'kich clean'
 
   @benchmark
   Scenario: uninstall nothing from 10,000 files
-       Then I benchmark 'kich uninstall <<<y'
+       Then I execute 'kich uninstall <<<y'

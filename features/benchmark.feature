@@ -6,12 +6,12 @@ Feature: benchmark
 
   @benchmark
   Scenario: install 1000 files into empty directory
-       Then I benchmark 'kich install'
+       Then I execute 'kich install'
 
   @benchmark
   Scenario: clean empty directory
-       Then I benchmark 'kich clean'
+       Then I execute 'kich clean'
 
   @benchmark
   Scenario: uninstall empty directory
-       Then I benchmark 'kich uninstall <<<y'
+       Then I execute 'kich uninstall <<<y'

@@ -1,13 +1,12 @@
 $benchmarks = []
 
-Before('@benchmark') do |scenario|
-  $scenario_name = scenario.name
+AfterStep('@benchmark') do |scenario, step|
+  $prev = $curr
+  $curr = Time.now
 end
 
-Then "I benchmark '$cmd'" do |cmd|
-  start = Time.now
-  step "I execute '#{cmd}'"
-  $benchmarks << { name: $scenario_name, value: Time.now - start }
+After('@benchmark') do |scenario|
+  $benchmarks << { name: scenario.name, value: Time.now - $prev }
 end
 
 at_exit do
