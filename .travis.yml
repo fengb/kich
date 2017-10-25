@@ -3,8 +3,8 @@ install: bundle install
 script: make test && make benchmark
 
 after_success:
-  - 'wget https://raw.githubusercontent.com/shelfgauge/shelfgauge-report/master/node/report.js'
-  - 'node report.js build/benchmark.json https://shelfgauge.herokuapp.com/repo/github/fengb~kich/suite'
+  - 'wget https://raw.githubusercontent.com/shelfgauge/shelfgauge-report/master/ruby/report.rb'
+  - 'ruby report.rb build/benchmark.json https://shelfgauge.herokuapp.com/repo/github/fengb~kich/suite'
 
 os:
   - linux
