@@ -135,7 +135,7 @@ function run_sync {
 function run_unsync {
   [ ! -L "$1" ] && panic "'$1' is not a symlink"
 
-  src="$(readlink "`abspath "$1"`")"
+  src="$(readlink "$1")"
   [[ "$src" != "$KICH_SRC"* ]] && panic "'$1' is not synced"
   [ ! -e "$src" ] && panic "'$src' is not found"
 
