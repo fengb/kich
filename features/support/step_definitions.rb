@@ -27,7 +27,7 @@ Given "in KICH_TGT" do
 end
 
 Given /there is a \$configfile with content:/ do |string|
-  $configfile = Tempfile.new('config')
+  $configfile = Tempfile.open('kich-config')
   $configfile.write(string)
   $configfile.close
 end

@@ -11,7 +11,7 @@ BUILD_DIR = File.join(PROJECT_DIR, 'build')
 Before do
   ENV['KICH_SRC'] = Dir.mktmpdir
   ENV['KICH_TGT'] = Dir.mktmpdir
-  ENV['KICH_CACHE'] = Tempfile.new.tap(&:close).path
+  ENV['KICH_CACHE'] = Tempfile.new("kich-cache").tap(&:close).path
 end
 
 After do
