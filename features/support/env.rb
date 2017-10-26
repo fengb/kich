@@ -18,5 +18,5 @@ After do
   FileUtils.cd PROJECT_DIR
   FileUtils.rm_r ENV['KICH_SRC']
   FileUtils.rm_r ENV['KICH_TGT']
-  FileUtils.rm ENV['KICH_CACHE']
+  FileUtils.rm_f ENV['KICH_CACHE']
 end
