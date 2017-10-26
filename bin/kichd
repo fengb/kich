@@ -68,15 +68,11 @@ function log {
   eexec notify-send 'kich' "$message"
 }
 
-# TODO: proactively handle broken pipe (when 'process' dies)
+prev_links="`src_links`"
 while true; do
-  prev_links="`src_links`"
-
-  watch | while read -r; do
+  while read -r; do
     curr_links="`src_links`"
     process <(echo "$prev_links") <(echo "$curr_links")
     prev_links="$curr_links"
-  done
-
-  reap
+  done < <(watch)
 done
