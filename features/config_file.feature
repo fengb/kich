@@ -10,6 +10,7 @@ Feature: kich -c FILE
             """
             KICH_SRC='banana'
             KICH_TGT='$KICH_TGT'
+            KICH_CACHE='$KICH_CACHE'
             KICH_IGNORE=''
             """
   Scenario: KICH_TGT='cheese'
@@ -22,6 +23,7 @@ Feature: kich -c FILE
             """
             KICH_SRC='$KICH_SRC'
             KICH_TGT='cheese'
+            KICH_CACHE='$KICH_CACHE'
             KICH_IGNORE=''
             """
   Scenario: KICH_IGNORE='salad'
@@ -34,6 +36,7 @@ Feature: kich -c FILE
             """
             KICH_SRC='$KICH_SRC'
             KICH_TGT='$KICH_TGT'
+            KICH_CACHE='$KICH_CACHE'
             KICH_IGNORE='salad'
             """
   Scenario: no file

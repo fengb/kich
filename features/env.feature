@@ -1,4 +1,4 @@
-Feature: kich sync
+Feature: kich env
 
   Scenario: happy path
        When I execute 'kich env'
@@ -6,5 +6,6 @@ Feature: kich sync
             """
             KICH_SRC='$KICH_SRC'
             KICH_TGT='$KICH_TGT'
+            KICH_CACHE='$KICH_CACHE'
             KICH_IGNORE=''
             """

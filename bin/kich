@@ -4,11 +4,16 @@
 #exec 3>&2 2>trace.log
 #set -x
 
+function abspath {
+  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
 function init_env {
   [ -n "${KICH_CONFIG-}" ] && source "$KICH_CONFIG"
 
   [ -z "${KICH_SRC-}" ] && source "$HOME/.kichconfig"
   : ${KICH_TGT="$HOME"}
+  : ${KICH_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/kich"}
   : ${KICH_IGNORE=''}
 
   IFS=$'\n'
@@ -50,10 +55,6 @@ function src_dirs {
 
 function src_links {
   src_find -name '*.link' -prune -or -type f
-}
-
-function abspath {
-  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
 function find_filter {
@@ -103,22 +104,29 @@ function panic {
 
 function run_install {
   tgt_dirs="`src_dirs | to_tgt`"
-  tgt_links="`src_links | to_tgt`"
+  tgt_links="`src_links | to_tgt | sort`"
 
-  existdirs="`find_filter $tgt_dirs -not -type d`"
-  existlinks="`find_filter $tgt_links -not -type l`"
-  brokelinks="`find_filter -L $tgt_links -type l`"
+  non_dirs="`find_filter $tgt_dirs -not -type d`"
+  non_links="`find_filter $tgt_links -not -type l`"
+  bad_links="`find_filter -L $tgt_links -type l`"
 
-  rm_files $existdirs $existlinks $brokelinks
+  if [ -f "$KICH_CACHE" ]; then
+    stale_links="`comm -23 "$KICH_CACHE" <(echo "$tgt_links")`"
+  fi
+
+  rm_files $non_dirs $non_links $bad_links ${stale_links-}
 
   mkdir -p $tgt_dirs
 
-  for dst in $tgt_links; do
-    if [ ! -e "$dst" ]; then
-      echo "⇋  $dst"
-      ln -s "`src_from "$dst"`" "$dst"
+  for tgt in $tgt_links; do
+    if [ ! -e "$tgt" ]; then
+      echo "⇋  $tgt"
+      ln -s "`src_from "$tgt"`" "$tgt"
     fi
   done
+
+  mkdir -p "$(dirname "$KICH_CACHE")"
+  echo "$tgt_links" >"$KICH_CACHE"
 }
 
 function run_sync {
@@ -151,6 +159,7 @@ function run_uninstall {
 function run_env {
   echo "KICH_SRC='$KICH_SRC'"
   echo "KICH_TGT='$KICH_TGT'"
+  echo "KICH_CACHE='$KICH_CACHE'"
   echo "KICH_IGNORE='$KICH_IGNORE'"
 }
 
