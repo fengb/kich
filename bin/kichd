@@ -6,13 +6,6 @@ source "${0%/*}/kich"
 
 init_env
 
-PID="$$"
-
-trap "{ reap; exit 1; } " INT TERM EXIT
-function reap {
-  pkill -P "$PID"
-}
-
 function eexec {
   command -v "$1" &>/dev/null && exec "$@"
 }
