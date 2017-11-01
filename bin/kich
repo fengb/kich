@@ -2,16 +2,17 @@
 
 use strict;
 use warnings;
-use Cwd qw[abs_path];
+use File::Basename;
 use File::Copy qw[move];
 use File::Path qw[make_path];
+use File::Spec;
 use Getopt::Long;
 
 # https://stackoverflow.com/a/6829502
 sub source {
   my $name = shift;
   open my $file, "<", $name
-    or die "could not open $name: $!";
+    or die "Config file '$name' not found\nDied";
 
   while (<$file>) {
     chomp;
@@ -33,12 +34,12 @@ sub starts_with {
 
 sub uniq {
   my %seen;
-  grep !$seen{$_}++, @_;
+  grep {!$seen{$_}++} @_;
 }
 
 sub init_env {
   GetOptions(
-    "c=s" => \$ENV{'KICH_CONFIG'}
+    "config=s" => \$ENV{'KICH_CONFIG'}
   ) or die;
 
   length($ENV{'KICH_CONFIG'} // '') and source($ENV{'KICH_CONFIG'});
@@ -61,22 +62,23 @@ sub find {
 }
 
 sub ignore_files {
-  my $files = $ENV{'KICH_IGNORE'};
+  my $files = $ENV{'KICH_IGNORE'} // '';
   $files =~ s!^[ \n]+!!g;
   return split / *\n+ */, $files;
 }
 
 sub src_find {
-  if (!exists $ENV{'KICH_IGNORE'}) {
+  my @ignore_files = ignore_files();
+  if (scalar(@ignore_files) == 0) {
     return find($ENV{'KICH_SRC'}, @_);
-  } else {
-    my @src_find_exclude = or_names(ignore_files());
-    return find($ENV{'KICH_SRC'},
-      "(", or_names(ignore_files()), ")", "-prune",
-      "-or",
-      "(", @_, ")", "-print"
-    );
   }
+
+  my @src_find_exclude = or_names(@ignore_files);
+  return find($ENV{'KICH_SRC'},
+    "(", or_names(ignore_files()), ")", "-prune",
+    "-or",
+    "(", @_, ")", "-print"
+  );
 }
 
 # Removes paths that are prefixes of the next path:
@@ -108,18 +110,17 @@ sub tgt_from {
 sub src_from {
   my $tgt = shift;
 
-  starts_with($tgt, $ENV{'KICH_TGT'}) || die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})";
+  starts_with($tgt, $ENV{'KICH_TGT'}) or die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})";
 
-  if ((-L $tgt) and !broke($tgt)) {
+  if ((-l $tgt) and !broke($tgt)) {
     return readlink($tgt);
   }
 
-  my $src = $tgt;
-  $src =~ s!^$ENV{'KICH_SRC'}!$ENV{'KICH_TGT'}!;
+  my $src = $tgt =~ s!^\Q$ENV{'KICH_TGT'}\E!$ENV{'KICH_SRC'}!r;
 
-  if (-f $tgt) {
+  if (-f $tgt or -f $src) {
     return $src;
-  } elsif (-d $tgt) {
+  } elsif (-d $tgt or -d "$src.link") {
     return "$src.link";
   } else {
     die 'wtf';
@@ -136,7 +137,8 @@ sub rm_files {
   }
 
   my $yn = <STDIN>;
-  if (!starts_with(chomp($yn), "y")) {
+  chomp($yn);
+  if (!starts_with($yn, "y")) {
     return;
   }
 
@@ -153,9 +155,9 @@ my %commands = (
     my @tgt_dirs = map {tgt_from $_} src_dirs;
     my @tgt_links = map {tgt_from $_} src_links;
 
-    my @existdirs = grep {!-d $_} @tgt_dirs;
-    my @existlinks = grep {!-l $_} @tgt_links;
-    my @brokelinks = grep {broke $_} @tgt_links;
+    my @existdirs = grep {-e $_ and !-d $_} @tgt_dirs;
+    my @existlinks = grep {-e $_ and !-l $_} @tgt_links;
+    my @brokelinks = grep {-l $_ and broke $_} @tgt_links;
 
     rm_files(@existdirs, @existlinks, @brokelinks);
 
@@ -173,9 +175,9 @@ my %commands = (
     my $tgt = shift;
 
     (-e $tgt) or die "'$tgt' is not found";
-    (!-L $tgt) or die "'$tgt' is a symlink";
+    (!-l $tgt) or die "'$tgt' is a symlink";
 
-    my $src = src_from(abs_path("$tgt"));
+    my $src = src_from(File::Spec->rel2abs($tgt));
     make_path(dirname($src));
     move($tgt, $src);
     symlink $src, $tgt;
@@ -214,7 +216,7 @@ my %commands = (
 
   clean => sub {
     my @kichlinks = find($ENV{'KICH_TGT'}, qw[-type l -lname], "$ENV{'KICH_SRC'}");
-    my @brokelinks = grep {-L $_} @kichlinks;
+    my @brokelinks = grep {-l $_} @kichlinks;
     rm_files(@brokelinks);
   }
 );
@@ -222,7 +224,7 @@ my %commands = (
 sub command {
   my $name = shift || "install";
   if ($commands{$name}) {
-    $commands{$name}->();
+    $commands{$name}->(@_);
   } else {
     die "'$1' is not a command";
   }

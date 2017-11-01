@@ -68,7 +68,7 @@ Then "there should be output:" do |string|
   if $last_kich[:out].strip == ""
     fail $last_kich[:err]
   end
-  assert_equal env_expand(string).strip, $last_kich[:out].strip
+  assert_include $last_kich[:out].strip, env_expand(string).strip
 end
 
 Then "there should be no output" do
@@ -76,7 +76,7 @@ Then "there should be no output" do
 end
 
 Then "there should be error:" do |string|
-  assert_equal string.strip, $last_kich[:err].strip
+  assert_include $last_kich[:err].strip, string.strip
   assert_not_equal 0, $last_kich[:status]
 end
 

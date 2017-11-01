@@ -10,7 +10,7 @@ INSTALL_FILES=`find $(DIRS) -type f 2>/dev/null`
 PREFIX?=/usr/local
 
 test: test/* features/*
-	test/bash_unit -f tap test/test*
+	#test/bash_unit -f tap test/test*
 	cucumber --tags ~@benchmark
 
 benchmark: features/*
