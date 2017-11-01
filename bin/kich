@@ -1,35 +1,77 @@
-#!/bin/bash
-#http://stackoverflow.com/questions/5014823/how-to-profile-a-bash-shell-script-slow-startup
-#PS4='+ \t\011 '
-#exec 3>&2 2>trace.log
-#set -x
+#!/usr/bin/env perl
 
-function init_env {
-  [ -n "${KICH_CONFIG-}" ] && source "$KICH_CONFIG"
+use strict;
+use warnings;
+use Cwd qw[abs_path];
+use File::Copy qw[move];
+use File::Path qw[make_path];
 
-  [ -z "${KICH_SRC-}" ] && source "$HOME/.kichconfig"
-  : ${KICH_TGT="$HOME"}
-  : ${KICH_IGNORE=''}
+# https://stackoverflow.com/a/6829502
+sub source {
+  my $name = shift;
+  open my $file, "<", $name
+    or die "could not open %name: $!";
 
-  IFS=$'\n'
+  while (<$file>) {
+    chomp;
+    my ($k, $v) = split /=/, $_, 2;
+    $v =~ s/^(['"])(.*)\1/$2/; #' fix highlighter
+    $v =~ s/\$([a-zA-Z]\w*)/$ENV{$1}/g;
+    $v =~ s/`(.*?)`/`$1`/ge; #dangerous
+    $ENV{$k} = $v;
+  }
+
+  close $file;
 }
 
-function to_tgt {
-  sed -e "s;^$KICH_SRC;$KICH_TGT;" -e "s/.link$//"
+sub starts_with {
+  my $haystack = shift;
+  my $needle = shift;
+  return index($haystack, $needle) == 0;
 }
 
-function or_names {
-  __=$'\\\n'
-  sed -e '/^ *$/d' -e 's/^  *//' -e "s/^/-or${__}-name${__}/" | sed -e '1d'
+sub uniq {
+  my %seen;
+  grep !$seen{$_}++, @_;
 }
 
-function src_find {
-  if [ -z "$KICH_IGNORE" ]; then
-    find "$KICH_SRC" "$@"
-  else
-    src_find_exclude="`or_names <<< "$KICH_IGNORE"`"
-    find "$KICH_SRC" \( $src_find_exclude \) -prune -or \( "$@" \) -print
-  fi
+sub init_env {
+  (exists $ENV{'KICH_CONFIG'}) and source($ENV{'KICH_CONFIG'});
+  (!exists $ENV{'KICH_SRC'}) and source("$ENV{'HOME'}/.kichconfig");
+
+  $ENV{'KICH_TGT'} ||= $ENV{'HOME'};
+  $ENV{'KICH_IGNORE'} ||= '';
+}
+
+sub or_names {
+  my @merged = map {("-name", $_, "-or")} @_;
+  pop @merged;
+  return @merged;
+}
+
+sub find {
+  my @args = map {$_ =~ s!([ ()])!\\$1!gr} @_;
+  my $string = `find @args`;
+  return split /\n/, $string;
+}
+
+sub ignore_files {
+  my $files = $ENV{'KICH_IGNORE'};
+  $files =~ s!^[ \n]+!!g;
+  return split / *\n+ */, $files;
+}
+
+sub src_find {
+  if (!exists $ENV{'KICH_IGNORE'}) {
+    return find($ENV{'KICH_SRC'}, @_);
+  } else {
+    my @src_find_exclude = or_names(ignore_files());
+    return find($ENV{'KICH_SRC'},
+      "(", or_names(ignore_files()), ")", "-prune",
+      "-or",
+      "(", @_, ")", "-print"
+    );
+  }
 }
 
 # Removes paths that are prefixes of the next path:
@@ -39,168 +81,165 @@ function src_find {
 #     Library/CoreData/ExternalRecords/HTMLNotes
 #   becomes
 #     Library/CoreData/ExternalRecords/HTMLNotes
-function remove_prefix_paths {
-  __=$'\\\n'
-  sed '$!N; /\(.*\)\n\1\/.*/!P;D'
+sub remove_prefix_paths {
+  #sed '$!N; /\(.*\)\n\1\/.*/!P;D'
 }
 
-function src_dirs {
-  src_find -not \( -name '*.link' -prune \) -type d | remove_prefix_paths
+sub src_dirs {
+  return src_find(qw[-not ( -name '*.link' -prune ) -type d]);
 }
 
-function src_links {
-  src_find -name '*.link' -prune -or -type f
+sub src_links {
+  return src_find(qw[-name '*.link' -prune -or -type f])
 }
 
-function abspath {
-  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+sub tgt_from {
+  my $name = shift;
+  $name =~ s!^$ENV{'KICH_SRC'}!$ENV{'KICH_TGT'}!;
+  $name =~ s!.link$!!;
+  return $name;
 }
 
-function find_filter {
-  find "$@" -maxdepth 0 2>/dev/null || true
+sub src_from {
+  my $tgt = shift;
+
+  starts_with($tgt, $ENV{'KICH_TGT'}) || die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})";
+
+  if ((-L $tgt) and !broke($tgt)) {
+    return readlink($tgt);
+  }
+
+  my $src = $tgt;
+  $src =~ s!^$ENV{'KICH_SRC'}!$ENV{'KICH_TGT'}!;
+
+  if (-f $tgt) {
+    return $src;
+  } elsif (-d $tgt) {
+    return "$src.link";
+  } else {
+    die 'wtf';
+  }
 }
 
-function tgt_from {
-  [[ "$1" != "$KICH_SRC"* ]] && panic "'$1' not in \$KICH_SRC ($KICH_SRC)"
+sub rm_files {
+  (scalar(@_) == 0) and return;
 
-  tgt="${KICH_TGT}${1#"$KICH_SRC"}"
-  echo "${tgt%.link}"
+  my @files = @_;
+
+  foreach my $file(@files) {
+    print "✗  $file\n";
+  }
+
+  my $yn = <STDIN>;
+  if (!starts_with(chomp($yn), "y")) {
+    return;
+  }
+
+  unlink(@files);
 }
 
-function src_from {
-  [[ "$1" != "$KICH_TGT"* ]] && panic "'$1' not in \$KICH_TGT ($KICH_TGT)"
-  [[ "$1" == "$KICH_SRC"* ]] && panic "'$1' already synced"
-
-  src="${KICH_SRC}${1#"$KICH_TGT"}"
-  if [ -f "$1" ]; then
-    echo "$src"
-  elif [ -d "$1" ]; then
-    echo "$src.link"
-  elif [ -e "$src" ]; then
-    echo "$src"
-  else
-    echo "$src.link"
-  fi
+sub broke {
+  my $name = shift;
+  return lstat $name && !stat $name;
 }
 
-function rm_files {
-  files="`<<<"$*" sed -e '/^$/d' | sort -u`"
-  [ -z "$files" ] && return
+my %commands = (
+  install => sub {
+    my @tgt_dirs = map {tgt_from $_} src_dirs;
+    my @tgt_links = map {tgt_from $_} src_links;
 
-  sed 's/^/✗  /' <<<"$files"
-  read -p "About to delete. Proceed [y/N]? " yn
-  case "$yn" in
-    [Yy]*)
-      rm -rf $files
-      ;;
-  esac
+    my @existdirs = grep {!-d $_} @tgt_dirs;
+    my @existlinks = grep {!-l $_} @tgt_links;
+    my @brokelinks = grep {broke $_} @tgt_links;
+
+    rm_files(@existdirs, @existlinks, @brokelinks);
+
+    make_path(@tgt_dirs);
+
+    foreach my $dst(@tgt_links) {
+      if (!-e $dst) {
+        print "⇋  $dst\n";
+        symlink src_from($dst), $dst;
+      }
+    }
+  },
+
+  sync => sub {
+    my $tgt = shift;
+
+    (-e $tgt) or die "'$tgt' is not found";
+    (!-L $tgt) or die "'$tgt' is a symlink";
+
+    my $src = src_from(abs_path("$tgt"));
+    make_path(dirname($src));
+    move($tgt, $src);
+    symlink $src, $tgt;
+  },
+
+  unsync => sub {
+    my $tgt = shift;
+
+    (-L $tgt) or die "'$tgt' is not a symlink";
+
+    my $src = readlink "$tgt";
+
+    (-e $src) or die "'$src' is not found";
+    starts_with($src, $ENV{'KICH_SRC'}) or die "'$tgt' is not synced";
+
+    unlink "$tgt";
+    move("$src", "$tgt");
+  },
+
+  uninstall => sub {
+    my @tgt_links = map {tgt_from($_)} src_links;
+    rm_files(@tgt_links);
+  },
+
+  env => sub {
+    print "KICH_SRC='$ENV{'KICH_SRC'}'\n";
+    print "KICH_TGT='$ENV{'KICH_TGT'}'\n";
+    print "KICH_IGNORE='$ENV{'KICH_IGNORE'}'\n";
+  },
+
+  ls => sub {
+    my @tgt_links = map {tgt_from $_} src_links;
+    my @exist_links = grep {!broke $_} @tgt_links;
+    print @exist_links;
+  },
+
+  clean => sub {
+    my @kichlinks = find($ENV{'KICH_TGT'}, qw[-type l -lname], "$ENV{'KICH_SRC'}");
+    my @brokelinks = grep {-L $_} @kichlinks;
+    rm_files(@brokelinks);
+  }
+);
+
+sub command {
+  init_env();
+  my $name = shift || "install";
+  if ($commands{$name}) {
+    $commands{$name}->();
+  } else {
+    die "'$1' is not a command";
+  }
 }
 
-function panic {
-  echo "kich: $1" >&2
-  exit 1
+unless (caller) {
+#  while getopts ":c:" o; do
+#    case "$o" in
+#      c*)
+#        [ ! -e "$OPTARG" ] && die "config file '$OPTARG' not found"
+#        KICH_CONFIG="$OPTARG"
+#        ;;
+#      \?)
+#        die "'-$OPTARG' not recognized"
+#        ;;
+#      :)
+#        die "'-$OPTARG' requires an argument"
+#        ;;
+#    esac
+#  done
+#  shift "$((OPTIND-1))"
+
+  command(@ARGV);
 }
-
-function run_install {
-  tgt_dirs="`src_dirs | to_tgt`"
-  tgt_links="`src_links | to_tgt`"
-
-  existdirs="`find_filter $tgt_dirs -not -type d`"
-  existlinks="`find_filter $tgt_links -not -type l`"
-  brokelinks="`find_filter -L $tgt_links -type l`"
-
-  rm_files $existdirs $existlinks $brokelinks
-
-  mkdir -p $tgt_dirs
-
-  for dst in $tgt_links; do
-    if [ ! -e "$dst" ]; then
-      echo "⇋  $dst"
-      ln -s "`src_from "$dst"`" "$dst"
-    fi
-  done
-}
-
-function run_sync {
-  tgt=${1-}
-  [ ! -e "$tgt" ] && panic "'$tgt' is not found"
-  [ -L "$tgt" ] && panic "'$tgt' is a symlink"
-
-  src="$(src_from "`abspath "$tgt"`")"
-  mkdir -p "${src%/*}"
-  mv "$tgt" "$src"
-  ln -s "$src" "$tgt"
-}
-
-function run_unsync {
-  [ ! -L "$1" ] && panic "'$1' is not a symlink"
-
-  src="$(readlink "$1")"
-  [[ "$src" != "$KICH_SRC"* ]] && panic "'$1' is not synced"
-  [ ! -e "$src" ] && panic "'$src' is not found"
-
-  rm "$1"
-  mv "$src" "$1"
-}
-
-function run_uninstall {
-  tgt_links="`src_links | to_tgt`"
-  rm_files $tgt_links
-}
-
-function run_env {
-  echo "KICH_SRC='$KICH_SRC'"
-  echo "KICH_TGT='$KICH_TGT'"
-  echo "KICH_IGNORE='$KICH_IGNORE'"
-}
-
-function run_ls {
-  tgt_links="`src_links | to_tgt`"
-  find_filter -L $tgt_links -not -type l
-}
-
-function run_clean {
-  kichlinks="`find "$KICH_TGT" -type l -lname "$KICH_SRC*"`"
-  brokelinks="`find_filter -L $kichlinks -type l`"
-  rm_files $brokelinks
-}
-
-function run {
-  set -euo pipefail
-
-  init_env
-
-  case "${1-}" in
-    install|sync|unsync|uninstall|env|ls|clean)
-      command="run_$1"
-      shift
-      "$command" "$@"
-      ;;
-    "")
-      run_install
-      ;;
-    *)
-      panic "'$1' is not a command"
-      ;;
-  esac
-}
-
-if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-  while getopts ":c:" o; do
-    case "$o" in
-      c*)
-        [ ! -e "$OPTARG" ] && panic "config file '$OPTARG' not found"
-        KICH_CONFIG="$OPTARG"
-        ;;
-      \?)
-        panic "'-$OPTARG' not recognized"
-        ;;
-      :)
-        panic "'-$OPTARG' requires an argument"
-        ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  run "$@"
-fi
