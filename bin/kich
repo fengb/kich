@@ -5,12 +5,13 @@ use warnings;
 use Cwd qw[abs_path];
 use File::Copy qw[move];
 use File::Path qw[make_path];
+use Getopt::Long;
 
 # https://stackoverflow.com/a/6829502
 sub source {
   my $name = shift;
   open my $file, "<", $name
-    or die "could not open %name: $!";
+    or die "could not open $name: $!";
 
   while (<$file>) {
     chomp;
@@ -36,8 +37,12 @@ sub uniq {
 }
 
 sub init_env {
-  (exists $ENV{'KICH_CONFIG'}) and source($ENV{'KICH_CONFIG'});
-  (!exists $ENV{'KICH_SRC'}) and source("$ENV{'HOME'}/.kichconfig");
+  GetOptions(
+    "c=s" => \$ENV{'KICH_CONFIG'}
+  ) or die;
+
+  length($ENV{'KICH_CONFIG'} // '') and source($ENV{'KICH_CONFIG'});
+  !length($ENV{'KICH_SRC'} // '') and source("$ENV{'HOME'}/.kichconfig");
 
   $ENV{'KICH_TGT'} ||= $ENV{'HOME'};
   $ENV{'KICH_IGNORE'} ||= '';
@@ -215,7 +220,6 @@ my %commands = (
 );
 
 sub command {
-  init_env();
   my $name = shift || "install";
   if ($commands{$name}) {
     $commands{$name}->();
@@ -225,21 +229,6 @@ sub command {
 }
 
 unless (caller) {
-#  while getopts ":c:" o; do
-#    case "$o" in
-#      c*)
-#        [ ! -e "$OPTARG" ] && die "config file '$OPTARG' not found"
-#        KICH_CONFIG="$OPTARG"
-#        ;;
-#      \?)
-#        die "'-$OPTARG' not recognized"
-#        ;;
-#      :)
-#        die "'-$OPTARG' requires an argument"
-#        ;;
-#    esac
-#  done
-#  shift "$((OPTIND-1))"
-
+  init_env();
   command(@ARGV);
 }
