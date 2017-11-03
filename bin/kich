@@ -8,6 +8,8 @@ use File::Path qw[make_path];
 use File::Spec;
 use Getopt::Long;
 
+use constant FILE_SEP => ";";
+
 # https://stackoverflow.com/a/6829502
 sub source {
   my $name = shift;
@@ -39,18 +41,18 @@ sub uniq {
 
 sub init_env {
   GetOptions(
-    "config=s" => \$ENV{'KICH_CONFIG'}
+    "config=s" => \$ENV{KICH_CONFIG}
   ) or die;
 
-  length($ENV{'KICH_CONFIG'} // '') and source($ENV{'KICH_CONFIG'});
-  !length($ENV{'KICH_SRC'} // '') and source("$ENV{'HOME'}/.kichconfig");
+  length($ENV{KICH_CONFIG} // '') and source($ENV{KICH_CONFIG});
+  !length($ENV{KICH_SRC} // '') and source("$ENV{HOME}/.kichconfig");
 
-  $ENV{'KICH_TGT'} ||= $ENV{'HOME'};
-  $ENV{'KICH_IGNORE'} ||= '';
+  $ENV{KICH_TGT} ||= $ENV{HOME};
+  $ENV{KICH_IGNORE} ||= '';
 }
 
-sub or_names {
-  my @merged = map {("-name", $_, "-or")} @_;
+sub find_or_names {
+  my @merged = map {("-name", $_, "-o")} @_;
   pop @merged;
   return @merged;
 }
@@ -63,22 +65,15 @@ sub find {
   return @files;
 }
 
-sub ignore_files {
-  my $files = $ENV{'KICH_IGNORE'} // '';
-  $files =~ s!^[ \n]+!!g;
-  return split / *\n+ */, $files;
-}
-
 sub src_find {
-  my @ignore_files = ignore_files();
-  if (scalar(@ignore_files) == 0) {
-    return find($ENV{'KICH_SRC'}, @_);
+  if (!$ENV{KICH_IGNORE}) {
+    return find($ENV{KICH_SRC}, @_);
   }
 
-  my @src_find_exclude = or_names(@ignore_files);
-  return find($ENV{'KICH_SRC'},
-    "(", or_names(ignore_files()), ")", "-prune",
-    "-or",
+  my @ignore = split FILE_SEP, $ENV{KICH_IGNORE};
+  return find($ENV{KICH_SRC},
+    "(", find_or_names(@ignore), ")", "-prune",
+    "-o",
     "(", @_, ")", "-print"
   );
 }
@@ -95,19 +90,19 @@ sub remove_prefix_paths {
 }
 
 sub src_dirs {
-  return src_find(qw[-not ( -name *.link -prune ) -type d]);
+  return src_find(qw[! ( -name *.link -prune ) -type d]);
 }
 
 sub src_links {
-  return src_find(qw[-name *.link -prune -or -type f])
+  return src_find(qw[-name *.link -prune -o -type f])
 }
 
 sub tgt_from {
   my $name = shift;
 
-  starts_with($name, $ENV{'KICH_SRC'}) or die "'$name' not in \$KICH_SRC ($ENV{'KICH_SRC'})\nDied";
+  starts_with($name, $ENV{KICH_SRC}) or die "'$name' not in \$KICH_SRC ($ENV{KICH_SRC})\nDied";
 
-  $name =~ s!^\Q$ENV{'KICH_SRC'}\E!$ENV{'KICH_TGT'}!;
+  $name =~ s!^\Q$ENV{KICH_SRC}\E!$ENV{KICH_TGT}!;
   $name =~ s!.link$!!;
   return $name;
 }
@@ -115,13 +110,13 @@ sub tgt_from {
 sub src_from {
   my $tgt = shift;
 
-  starts_with($tgt, $ENV{'KICH_TGT'}) or die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})\nDied";
+  starts_with($tgt, $ENV{KICH_TGT}) or die "'$tgt' not in \$KICH_TGT ($ENV{KICH_TGT})\nDied";
 
   if ((-l $tgt) and !broke($tgt)) {
     return readlink($tgt);
   }
 
-  my $src = $tgt =~ s!^\Q$ENV{'KICH_TGT'}\E!$ENV{'KICH_SRC'}!r;
+  my $src = $tgt =~ s!^\Q$ENV{KICH_TGT}\E!$ENV{KICH_SRC}!r;
 
   if (-f $tgt or -f $src) {
     return $src;
@@ -192,12 +187,12 @@ my %commands = (
   unsync => sub {
     my $tgt = shift;
 
-    (-L $tgt) or die "'$tgt' is not a symlink\nDied";
+    (-l $tgt) or die "'$tgt' is not a symlink\nDied";
 
     my $src = readlink "$tgt";
 
     (-e $src) or die "'$src' is not found\nDied";
-    starts_with($src, $ENV{'KICH_SRC'}) or die "'$tgt' is not synced\nDied";
+    starts_with($src, $ENV{KICH_SRC}) or die "'$tgt' is not synced\nDied";
 
     unlink "$tgt";
     move("$src", "$tgt");
@@ -205,25 +200,25 @@ my %commands = (
 
   uninstall => sub {
     my @tgt_links = map {tgt_from($_)} src_links;
-    rm_files(@tgt_links);
+    rm_files(grep {-l $_} @tgt_links);
   },
 
   env => sub {
-    print "KICH_SRC='$ENV{'KICH_SRC'}'\n";
-    print "KICH_TGT='$ENV{'KICH_TGT'}'\n";
-    print "KICH_IGNORE='$ENV{'KICH_IGNORE'}'\n";
+    print "KICH_SRC='$ENV{KICH_SRC}'\n";
+    print "KICH_TGT='$ENV{KICH_TGT}'\n";
+    print "KICH_IGNORE='$ENV{KICH_IGNORE}'\n";
   },
 
   ls => sub {
     my @tgt_links = map {tgt_from $_} src_links;
-    my @exist_links = grep {!broke $_} @tgt_links;
-    print @exist_links;
+    for my $link(grep {!broke $_} @tgt_links) {
+      print "$link\n";
+    }
   },
 
   clean => sub {
-    my @kichlinks = find($ENV{'KICH_TGT'}, qw[-type l -lname], "$ENV{'KICH_SRC'}");
-    my @brokelinks = grep {-l $_} @kichlinks;
-    rm_files(@brokelinks);
+    my @kich_links = find($ENV{KICH_TGT}, qw[-type l -lname], $ENV{KICH_SRC});
+    rm_files(grep {broke $_} @kich_links);
   }
 );
 
