@@ -102,7 +102,10 @@ sub src_links {
 
 sub tgt_from {
   my $name = shift;
-  $name =~ s!^$ENV{'KICH_SRC'}!$ENV{'KICH_TGT'}!;
+
+  starts_with($name, $ENV{'KICH_SRC'}) or die "'$name' not in \$KICH_SRC ($ENV{'KICH_SRC'})\nDied";
+
+  $name =~ s!^\Q$ENV{'KICH_SRC'}\E!$ENV{'KICH_TGT'}!;
   $name =~ s!.link$!!;
   return $name;
 }
@@ -110,7 +113,7 @@ sub tgt_from {
 sub src_from {
   my $tgt = shift;
 
-  starts_with($tgt, $ENV{'KICH_TGT'}) or die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})";
+  starts_with($tgt, $ENV{'KICH_TGT'}) or die "'$tgt' not in \$KICH_TGT ($ENV{'KICH_TGT'})\nDied";
 
   if ((-l $tgt) and !broke($tgt)) {
     return readlink($tgt);
@@ -123,7 +126,7 @@ sub src_from {
   } elsif (-d $tgt or -d "$src.link") {
     return "$src.link";
   } else {
-    die 'wtf';
+    die "Neither SRC ($src) nor TGT ($tgt) cannot be identified\nDied";
   }
 }
 
@@ -136,6 +139,7 @@ sub rm_files {
     print "✗  $file\n";
   }
 
+  print "About to delete. Proceed [y/N]? ";
   my $yn = <STDIN>;
   chomp($yn);
   if (!starts_with($yn, "y")) {
@@ -174,8 +178,8 @@ my %commands = (
   sync => sub {
     my $tgt = shift;
 
-    (-e $tgt) or die "'$tgt' is not found";
-    (!-l $tgt) or die "'$tgt' is a symlink";
+    (-e $tgt) or die "'$tgt' is not found\nDied";
+    (!-l $tgt) or die "'$tgt' is a symlink\nDied";
 
     my $src = src_from(File::Spec->rel2abs($tgt));
     make_path(dirname($src));
@@ -186,12 +190,12 @@ my %commands = (
   unsync => sub {
     my $tgt = shift;
 
-    (-L $tgt) or die "'$tgt' is not a symlink";
+    (-L $tgt) or die "'$tgt' is not a symlink\nDied";
 
     my $src = readlink "$tgt";
 
-    (-e $src) or die "'$src' is not found";
-    starts_with($src, $ENV{'KICH_SRC'}) or die "'$tgt' is not synced";
+    (-e $src) or die "'$src' is not found\nDied";
+    starts_with($src, $ENV{'KICH_SRC'}) or die "'$tgt' is not synced\nDied";
 
     unlink "$tgt";
     move("$src", "$tgt");
@@ -226,7 +230,7 @@ sub command {
   if ($commands{$name}) {
     $commands{$name}->(@_);
   } else {
-    die "'$1' is not a command";
+    die "'$1' is not a command\nDied";
   }
 }
 
