@@ -56,9 +56,11 @@ sub or_names {
 }
 
 sub find {
-  my @args = map {$_ =~ s!([ ()])!\\$1!gr} @_;
-  my $string = `find @args`;
-  return split /\n/, $string;
+  open(my $pipe, '-|', "find", @_);
+  my @files = <$pipe>;
+  close($pipe);
+  chomp(@files);
+  return @files;
 }
 
 sub ignore_files {
@@ -93,11 +95,11 @@ sub remove_prefix_paths {
 }
 
 sub src_dirs {
-  return src_find(qw[-not ( -name '*.link' -prune ) -type d]);
+  return src_find(qw[-not ( -name *.link -prune ) -type d]);
 }
 
 sub src_links {
-  return src_find(qw[-name '*.link' -prune -or -type f])
+  return src_find(qw[-name *.link -prune -or -type f])
 }
 
 sub tgt_from {
