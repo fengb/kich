@@ -40,7 +40,7 @@ Feature: kich -c FILE
        When I execute 'kich -c'
        Then there should be error:
             """
-            Option config requires an argument
+            Option -c requires an argument
             """
   Scenario: missing file
        When I execute 'kich -c MISSINGNO.'

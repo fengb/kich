@@ -2,11 +2,12 @@
 
 use strict;
 use warnings;
-use File::Basename;
-use File::Copy qw[move];
-use File::Path qw[make_path];
+#use File::Basename qw[dirname]; #  4ms
+#use File::Copy qw[move];
+#use File::Path qw[make_path];
 use File::Spec;
-use Getopt::Long;
+#use Getopt::Long;
+use Getopt::Std qw[getopts];
 
 use constant FILE_SEP => ";";
 
@@ -40,9 +41,14 @@ sub uniq {
 }
 
 sub init_env {
-  GetOptions(
-    "config=s" => \$ENV{KICH_CONFIG}
-  ) or die;
+  my %opts;
+  getopts('c:', \%opts);
+  if (exists $opts{c}) {
+    if (!defined $opts{c}) {
+      die "Option -c requires an argument\nDied";
+    }
+    $ENV{KICH_CONFIG} = $opts{c};
+  }
 
   length($ENV{KICH_CONFIG} // '') and source($ENV{KICH_CONFIG});
   !length($ENV{KICH_SRC} // '') and source("$ENV{HOME}/.kichconfig");
@@ -162,7 +168,7 @@ my %commands = (
 
     rm_files(@existdirs, @existlinks, @brokelinks);
 
-    make_path(@tgt_dirs);
+    system "mkdir", "-p", @tgt_dirs;
 
     foreach my $dst(@tgt_links) {
       if (!-e $dst) {
@@ -179,8 +185,9 @@ my %commands = (
     (!-l $tgt) or die "'$tgt' is a symlink\nDied";
 
     my $src = src_from(File::Spec->rel2abs($tgt));
-    make_path(dirname($src));
-    move($tgt, $src);
+    my $dirname = $src =~ s!/.*?$!!r;
+    system "mkdir", "-p", $dirname;
+    system "mv", $tgt, $src;
     symlink $src, $tgt;
   },
 
@@ -189,13 +196,13 @@ my %commands = (
 
     (-l $tgt) or die "'$tgt' is not a symlink\nDied";
 
-    my $src = readlink "$tgt";
+    my $src = readlink $tgt;
 
     (-e $src) or die "'$src' is not found\nDied";
     starts_with($src, $ENV{KICH_SRC}) or die "'$tgt' is not synced\nDied";
 
-    unlink "$tgt";
-    move("$src", "$tgt");
+    unlink $tgt;
+    system "mv", $src, $tgt;
   },
 
   uninstall => sub {
