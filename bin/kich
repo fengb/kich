@@ -40,15 +40,26 @@ sub uniq {
   grep {!$seen{$_}++} @_;
 }
 
-sub init_env {
-  my %opts;
-  getopts('c:', \%opts);
-  if (exists $opts{c}) {
-    if (!defined $opts{c}) {
-      die "Option -c requires an argument\nDied";
+sub opts {
+  my $actions = shift;
+
+  my $opts = join "", keys(%$actions);
+  my %parsed;
+  getopts($opts, \%parsed);
+  foreach my $key(keys %parsed) {
+    my $val = $parsed{$key};
+    if (!exists $$actions{$key}) {
+      $val || die "Option -$key requires an argument\nDied";
+      $key = "$key:";
     }
-    $ENV{KICH_CONFIG} = $opts{c};
+    $$actions{$key}->($val);
   }
+}
+
+sub init_env {
+  opts({
+    'c:' => sub { $ENV{KICH_CONFIG} = shift; }
+  });
 
   length($ENV{KICH_CONFIG} // '') and source($ENV{KICH_CONFIG});
   !length($ENV{KICH_SRC} // '') and source("$ENV{HOME}/.kichconfig");
