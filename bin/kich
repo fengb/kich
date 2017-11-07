@@ -9,7 +9,9 @@ use File::Spec;
 #use Getopt::Long;
 use Getopt::Std qw[getopts];
 
-use constant FILE_SEP => ";";
+use constant {
+  FILE_SEP => ";"
+};
 
 # https://stackoverflow.com/a/6829502
 sub source {
@@ -58,7 +60,10 @@ sub opts {
 
 sub init_env {
   opts({
-    'c:' => sub { $ENV{KICH_CONFIG} = shift; }
+    'c:' => sub { $ENV{KICH_CONFIG} = shift; },
+    'a:' => sub { $ENV{KICH_AUTORM} = shift; },
+    'y'  => sub { $ENV{KICH_AUTORM} = 'y'; },
+    'n'  => sub { $ENV{KICH_AUTORM} = 'n'; }
   });
 
   length($ENV{KICH_CONFIG} // '') and source($ENV{KICH_CONFIG});
@@ -149,15 +154,23 @@ sub rm_files {
 
   my @files = @_;
 
+  if ($ENV{KICH_AUTORM} == 'n') {
+    foreach my $file(@files) {
+      print "!  $file\n";
+    }
+    die;
+  }
+
   foreach my $file(@files) {
     print "✗  $file\n";
   }
 
-  print "About to delete. Proceed [y/N]? ";
-  my $yn = <STDIN>;
-  chomp($yn);
-  if (!starts_with($yn, "y")) {
-    return;
+  if ($ENV{KICH_AUTORM} != 'y') {
+    print "About to delete. Proceed [y/N]? ";
+    my $yn = <STDIN>;
+    if (!starts_with($yn, "y")) {
+      die;
+    }
   }
 
   unlink(@files);
