@@ -111,12 +111,27 @@ sub remove_prefix_paths {
   #sed '$!N; /\(.*\)\n\1\/.*/!P;D'
 }
 
-sub src_dirs {
-  return src_find(qw[! ( -name *.link -prune ) -type d]);
-}
-
 sub src_links {
   return src_find(qw[-name *.link -prune -o -type f])
+}
+
+sub dirname {
+  shift =~ s!/[^/]*$!!r;
+}
+
+sub dirs_of {
+  my $file = shift;
+  my $base = shift // '/';
+
+  starts_with($file, $base) or die "'$file' not in '$base'\nDied";
+
+  my @dirs;
+  my $dir = dirname($file);
+  while ($dir ne $base) {
+    push @dirs, $dir;
+    $dir = dirname($dir);
+  }
+  return @dirs;
 }
 
 sub tgt_from {
@@ -183,8 +198,8 @@ sub broke {
 
 my %commands = (
   install => sub {
-    my @tgt_dirs = map {tgt_from $_} src_dirs;
     my @tgt_links = map {tgt_from $_} src_links;
+    my @tgt_dirs = uniq(map {dirs_of $_, $ENV{KICH_TGT}} @tgt_links);
 
     my @existdirs = grep {-e $_ and !-d $_} @tgt_dirs;
     my @existlinks = grep {-e $_ and !-l $_} @tgt_links;
@@ -209,8 +224,7 @@ my %commands = (
     (!-l $tgt) or die "'$tgt' is a symlink\nDied";
 
     my $src = src_from(File::Spec->rel2abs($tgt));
-    my $dirname = $src =~ s!/.*?$!!r;
-    system "mkdir", "-p", $dirname;
+    system "mkdir", "-p", dirname($src);
     system "mv", $tgt, $src;
     symlink $src, $tgt;
   },
