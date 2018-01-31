@@ -84,20 +84,28 @@ sub find {
   my @files = <$pipe>;
   close($pipe);
   chomp(@files);
-  return @files;
+  return sort(@files);
 }
 
-sub src_find {
-  if (!$ENV{KICH_IGNORE}) {
-    return find($ENV{KICH_SRC}, @_);
+sub find_links {
+  my @conditions = qw[-name *.link -prune -o -type f];
+  my $dir = shift;
+  my @ignore = @_;
+
+  if (scalar(@ignore) == 0) {
+    return find($dir, @conditions);
   }
 
-  my @ignore = split FILE_SEP, $ENV{KICH_IGNORE};
-  return find($ENV{KICH_SRC},
+  return find($dir,
     "(", find_or_names(@ignore), ")", "-prune",
     "-o",
-    "(", @_, ")", "-print"
+    "(", @conditions, ")", "-print"
   );
+}
+
+sub src_links {
+  my @ignore = split FILE_SEP, $ENV{KICH_IGNORE};
+  return find_links($ENV{KICH_SRC}, @ignore);
 }
 
 # Removes paths that are prefixes of the next path:
@@ -109,10 +117,6 @@ sub src_find {
 #     Library/CoreData/ExternalRecords/HTMLNotes
 sub remove_prefix_paths {
   #sed '$!N; /\(.*\)\n\1\/.*/!P;D'
-}
-
-sub src_links {
-  return src_find(qw[-name *.link -prune -o -type f])
 }
 
 sub dirname {
