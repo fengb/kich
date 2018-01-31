@@ -22,6 +22,7 @@ my %benches = (
       'File::Copy'     => sub { feval 'use File::Copy qw[move];' },
       'File::Path'     => sub { feval 'use File::Path qw[make_path];' },
       'File::Spec'     => sub { feval 'use File::Spec;' },
+      'File::Find'     => sub { feval 'use File::Find;' },
       'GetOpt::Long'   => sub { feval 'use Getopt::Long;' },
       'GetOpt::Short'  => sub { feval 'use Getopt::Std qw[getopts];' }
     });
